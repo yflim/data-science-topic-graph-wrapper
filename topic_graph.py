@@ -199,6 +199,29 @@ class TopicGraph:
             print(f'{query} raised an error:\n', traceback.format_exc())
             raise
 
+    def disconnect_branch(self, branch, parent_label, parent):
+        with self.driver.session() as session:
+            result = session.write_transaction(self._disconnect_branch, branch, parent_label, parent)
+            print(f"Disconnected Branch {branch} from {parent_label} {parent}")
+
+    @staticmethod
+    def _disconnect_branch(tx, branch, parent_label, parent):
+        query = 'MATCH (:Branch { name: $branch })-[r:BELONGS_TO]->'
+        if parent_label == 'Trunk':
+            query += '(:Trunk { name: $parent }) '
+        elif parent_label == 'Branch':
+            query += '(:Branch { name: $parent }) '
+        else:
+            raise ValueError('Branch must belong to Trunk or Branch')
+        query += (
+            'DELETE r'
+        )
+        try:
+            result = tx.run(query, branch=branch, parent=parent)
+        except DriverError:
+            print(f'{query} raised an error:\n', traceback.format_exc())
+            raise
+
     def get_branches(self, parent_label, parent_name):
         with self.driver.session() as session:
             result = session.write_transaction(self._get_branches, parent_label, parent_name)
