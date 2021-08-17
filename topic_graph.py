@@ -165,21 +165,26 @@ class TopicGraph:
             raise
 
     # Only branches (as opposed to trunks) can have outgoing (belonging) edges
-    def connect_branch(self, from_branch, parent_label, to_parent):
+    def connect_branch(self, from_branch, curr_parent_label, curr_parent, to_parent_label, to_parent):
         with self.driver.session() as session:
-            result = session.write_transaction(self._connect_branch, from_branch, parent_label, to_parent)
+            result = session.write_transaction(self._connect_branch, from_branch, curr_parent_label, curr_parent, to_parent_label, to_parent)
             if len(result) == 0:
-                print('Connection does not exist and not created: please check correctness of node names and parent label.')
+                print('Connection does not exist and not created: please check correctness of node names and parent labels and names.')
             else:
                 for row in result:
                     print(f"Added connection from child {row['from']} to parent {row['to']}")
 
     @staticmethod
-    def _connect_branch(tx, from_branch, parent_label, to_parent):
-        query = 'MATCH (from:Branch { name: $from_branch }) '
-        if parent_label == 'Trunk':
+    def _connect_branch(tx, from_branch, curr_parent_label, curr_parent, to_parent_label, to_parent):
+        if curr_parent_label == 'Trunk':
+            query = 'MATCH (from:Branch { name: $from_branch })-[:BELONGS_TO]->(:Trunk { name: $curr_parent }) '
+        elif curr_parent_label == 'Branch':
+            query = 'MATCH (from:Branch { name: $from_branch })-[:BELONGS_TO]->(:Branch { name: $curr_parent }) '
+        else:
+            raise ValueError('Branch must belong to Trunk or Branch')
+        if to_parent_label == 'Trunk':
             query += 'MATCH (to:Trunk { name: $to_parent }) '
-        elif parent_label == 'Branch':
+        elif to_parent_label == 'Branch':
             query += 'MATCH (to:Branch { name: $to_parent }) '
         else:
             raise ValueError('Branch must belong to Trunk or Branch')
@@ -188,7 +193,7 @@ class TopicGraph:
             'RETURN from, to'
         )
         try:
-            result = tx.run(query, from_branch=from_branch, to_parent=to_parent)
+            result = tx.run(query, from_branch=from_branch, to_parent=to_parent, curr_parent=curr_parent)
             return [{ 'from': row['from']['name'], 'to': row['to']['name'] } for row in result]
         except DriverError:
             print(f'{query} raised an error:\n', traceback.format_exc())
