@@ -225,9 +225,12 @@ class TopicGraph:
     def get_branches(self, parent_label, parent_name):
         with self.driver.session() as session:
             result = session.write_transaction(self._get_branches, parent_label, parent_name)
-            print(f'Branches of {parent_label} {parent_name}: ')
-            for row in result:
-                print(f"{row['name']}")
+            if len(result) == 0:
+                print('Branches not found: either {parent_label} {parent_name} does not exist, or it has no branches.')
+            else:
+                print(f'Branches of {parent_label} {parent_name}: ')
+                for row in result:
+                    print(f"{row['name']}")
 
     @staticmethod
     def _get_branches(tx, label, name):
@@ -333,9 +336,12 @@ class TopicGraph:
     def get_references(self, about_label, about):
         with self.driver.session() as session:
             result = session.write_transaction(self._get_references, about_label, about)
-            print(f'References about {about_label} {about}:')
-            for row in result:
-                print(f"{row['title']}: {row['url']}")
+            if len(result) == 0:
+                print('References not found: either {about_label} {about} does not exist, or it has no references.')
+            else:
+                print(f'References about {about_label} {about}:')
+                for row in result:
+                    print(f"{row['title']}: {row['url']}")
 
     @staticmethod
     def _get_references(tx, about_label, about):
