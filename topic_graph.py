@@ -136,6 +136,34 @@ class TopicGraph:
             print(f'{query} raised an error:\n', traceback.format_exc())
             raise
 
+    def rename_topic(self, label, name, newname):
+        with self.driver.session() as session:
+            result = session.write_transaction(self._rename_topic, label, name, newname)
+            if len(result) == 0:
+                print('Rename not performed: {label} {name} not found; please check correctness.')
+            else:
+                for row in result:
+                    print(f"Renamed {label} {name} to {row['newname']}")
+
+    @staticmethod
+    def _rename_topic(tx, label, name, newname):
+        if label == 'Trunk':
+            query = 'MATCH (topic:Trunk { name: $name }) '
+        elif label == 'Branch':
+            query = 'MATCH (topic:Branch { name: $name }) '
+        else:
+            raise ValueError('Topic must be a Trunk or Branch')
+        query += (
+            'SET topic.name = $newname '
+            'RETURN topic'
+        )
+        try:
+            result = tx.run(query, name=name, newname=newname)
+            return [{ 'newname': row['topic']['name'] } for row in result]
+        except DriverError:
+            print(f'{query} raised an error:\n', traceback.format_exc())
+            raise
+
     # Only branches (as opposed to trunks) can have outgoing (belonging) edges
     def connect_branch(self, from_branch, parent_label, to_parent):
         with self.driver.session() as session:
