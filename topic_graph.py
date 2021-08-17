@@ -14,8 +14,8 @@ import traceback
 
 
 # TODO / WISHLIST:
+# - Sort get_trunks() and get_branches() return value alphabetically
 # - Adding reference to a Branch: the latter could be non-unique. Add some way to uniquely identify?
-# - delete_connection(self, from_branch, parent_label, to_parent):
 # - Get all descendants of node
 # - Get all ancestors of node
 # - edit_branch
